@@ -4,10 +4,22 @@ from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from .forms import UserRegistrationForm
 
-@login_required(login_url='users:login')
+
 def user(request):
     return render(request, "users/user.html")
+
+def register(request):
+    if request.method == "POST":
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your account has been created! Please set up multi-factor authentication.")
+            return redirect('users:login')
+    else:
+        form = UserRegistrationForm()
+    return render(request, 'users/register.html', {'form': form})
 
 def login_view(request):
     if request.method == "POST":
