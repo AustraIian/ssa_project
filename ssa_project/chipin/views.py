@@ -10,8 +10,10 @@ from .forms import GroupCreationForm
 from .models import Group
 import urllib.parse
 
+@login_required
 def home(request):
-    return render(request, "chipin/home.html")
+    pending_invitations = Group.objects.filter(invited_users__email=request.user.email)
+    return render(request, "chipin/home.html", {'pending_invitations': pending_invitations})
 
 @login_required
 def create_group(request):
@@ -45,6 +47,29 @@ def invite_users(request, group_id):
     group = get_object_or_404(Group, id=group_id)
     users_not_in_group = User.objects.exclude(id__in=group.members.values_list('id', flat=True))
     if request.method == 'POST':
-     
-        return redirect('chipin:group_detail', group_id=group.id)
-    return render(request, 'chipin/invite_users.html', {'group': group, 'users_not_in_group': users_not_in_group})
+        user_id = request.POST.get('user_id')
+        invited_user = get_object_or_404(User, id=user_id)      
+        if invited_user in group.invited_users.all():
+            messages.info(request, f'{invited_user.username} has already been invited.')
+        else:
+            group.invited_users.add(invited_user)
+            messages.success(request, f'Invitation sent to {invited_user.username}.')
+        return redirect('chipin:group_detail', group_id=group.id)  
+    return render(request, 'chipin/invite_users.html', {
+        'group': group,
+        'users_not_in_group': users_not_in_group
+    })
+
+@login_required
+def accept_invite(request, group_id):
+    group = get_object_or_404(Group, id=group_id)
+    invited_user = request.user  # Use request.user to ensure only the logged-in user can accept their own invite
+    if invited_user in group.members.all():
+        messages.info(request, f'You are already a member of the group "{group.name}".')
+    elif invited_user in group.invited_users.all():
+        group.members.add(invited_user)
+        group.invited_users.remove(invited_user)  # Remove from invited list
+        messages.success(request, f'You have successfully joined the group "{group.name}".')
+    else:
+        messages.error(request, "You are not invited to join this group.")
+    return redirect('chipin:group_detail', group_id=group.id)
