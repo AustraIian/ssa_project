@@ -1,14 +1,8 @@
-from django.contrib import admin
-from django.urls import path, include
+from django.contrib import admin 
+from django.urls import include, path
 
-urlpatterns = [
-    # Admin URL
-    path('admin/', admin.site.urls),
-
-    # Authentication URLs
-    path('accounts/', include('django.contrib.auth.urls')),  # Handles login, logout, etc.
-
-    # Your app-specific URLs
-    path('chipin/', include('chipin.urls')),  # Include your app's URLs here
+urlpatterns = [ 
+	path('admin/', admin.site.urls), 
+	path('users/', include(("users.urls", "users"), namespace="users")),
+	path('chipin/', include(("chipin.urls", "chipin"), namespace="chipin")),
 ]
-
